@@ -86,7 +86,7 @@
   local_action:
     module: rds
     command: create
-    instance_name: "{{ instance_name }}"
+    instance_name: "db-{{ instance_name }}"
     backup_retention: 5
     db_engine: "MySQL"
     db_name: "{{ db_name }}"
