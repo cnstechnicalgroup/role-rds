@@ -1,0 +1,101 @@
+---
+- name: Normalize variables
+  set_fact:
+    prefix: "{{ item.value.prefix }}"
+    app: "{{ item.value.app }}"
+    mode: "{{ item.value.mode }}"
+    instance_name: "{{ item.value.prefix }}-{{ item.value.app }}-{{ item.value.mode }}-001"
+    db_name: "{{ item.value.db_name }}"
+    username: "{{ item.value.db_username }}"
+    password: "{{ item.value.db_password }}"
+    multizone: "{{ item.value.multizone }}"
+    region: "{{ item.value.region }}"
+    db_subnet_group: "mysql-{{ item.value.prefix }}-{{ item.value.mode}}-dbsng-001"
+    instance_type: "{{ item.value.instance_type }}"
+    count: "{{ item.value.count }}"
+  with_dict: instance
+
+- name: Get management subnet cidr assignments
+  set_fact:
+    mgmt_cidr: "{{ item.cidr }}"
+  with_items: vpc.subnets
+  when: item.resource_tags['Name'] is defined and item.resource_tags['Name'] == "{{ mgmt_subnet_name }}"
+
+- name: Get app subnet address
+  set_fact:
+    app_cidr: "{{ item.cidr }}"
+  with_items: vpc.subnets
+  when: item.resource_tags['Name'] is defined and item.resource_tags['Name'] == "{{ prefix }}_app_{{ mode }}"
+
+- name: Get web subnet address
+  set_fact:
+    web_cidr: "{{ item.cidr }}"
+  with_items: vpc.subnets
+  when: item.resource_tags['Name'] is defined and item.resource_tags['Name'] == "{{ prefix }}_web_{{ mode }}"
+
+- name: Get DB Hosts SG details
+  local_action:
+    module: ec2_group
+    name: "{{ prefix }}-{{ mode }}-db-001"
+    description: DB Hosts SG
+    vpc_id: "{{ vpc.vpc_id }}"
+    region: "{{ region }}"
+    rules:
+      - proto: tcp
+        from_port: 22
+        to_port: 22
+        cidr_ip: "{{ mgmt_cidr }}"
+      - proto: tcp
+        from_port: 3306
+        to_port: 3306
+        cidr_ip: "{{ mgmt_cidr }}"
+      - proto: tcp
+        from_port: 3306
+        to_port: 3306
+        cidr_ip: "{{ app_cidr }}"
+      - proto: tcp
+        from_port: 3306
+        to_port: 3306
+        cidr_ip: "{{ web_cidr }}"
+  register: db_sg
+
+- name: Get RDS - A subnet id for RDS Subnet Group creation
+  set_fact:
+    rds_subnet_id_a: "{{ item.id }}"
+  with_items: vpc.subnets
+  when: item.resource_tags['Name'] is defined and item.resource_tags['Name'] == "{{ prefix }}_rdsa_{{ mode }}"
+
+- name: Get RDS - B subnet id for DB Subnet Group creation
+  set_fact:
+    rds_subnet_id_b: "{{ item.id }}"
+  with_items: vpc.subnets
+  when: item.resource_tags['Name'] is defined and item.resource_tags['Name'] == "{{ prefix }}_rdsb_{{ mode }}"
+
+- name: Create DB Subnet Group
+  local_action:
+    module: rds_subnet_group
+    state: present
+    region: "{{ region }}"
+    name: "{{ db_subnet_group }}"
+    description: DB Subnet Group
+    subnets:
+      - "{{ rds_subnet_id_a }}"
+      - "{{ rds_subnet_id_b }}"
+
+- name: Initialize RDS instance
+  local_action:
+    module: rds
+    command: create
+    instance_name: "{{ instance_name }}"
+    backup_retention: 5
+    db_engine: "MySQL"
+    db_name: "{{ db_name }}"
+    username: "{{ username }}"
+    password: "{{ password }}"
+    multi_zone: "{{ multizone }}"
+    size: 5
+    region: "{{ region }}"
+    subnet: "{{ db_subnet_group }}"
+    vpc_security_groups: "{{ db_sg.group_id }}"
+    instance_type: "{{ instance_type }}"
+  register: rds
