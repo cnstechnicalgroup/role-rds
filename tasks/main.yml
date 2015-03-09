@@ -4,13 +4,13 @@
     prefix: "{{ item.value.prefix }}"
     app: "{{ item.value.app }}"
     mode: "{{ item.value.mode }}"
-    instance_name: "{{ item.value.prefix }}-{{ item.value.app }}-{{ item.value.mode }}-001"
+    instance_name: "{{ item.value.prefix }}-{{ item.value.app }}-{{ item.value.mode }}-{{ item.value.version }}"
     db_name: "{{ item.value.db_name }}"
     username: "{{ item.value.db_username }}"
     password: "{{ item.value.db_password }}"
     multizone: "{{ item.value.multizone }}"
     region: "{{ item.value.region }}"
-    db_subnet_group: "mysql-{{ item.value.prefix }}-{{ item.value.mode}}-dbsng-001"
+    db_subnet_group: "mysql-{{ item.value.prefix }}-{{ item.value.mode}}-dbsng"
     instance_type: "{{ item.value.instance_type }}"
     count: "{{ item.value.count }}"
   with_dict: instance
@@ -36,7 +36,7 @@
 - name: Get DB Hosts SG details
   local_action:
     module: ec2_group
-    name: "{{ prefix }}-{{ mode }}-db-001"
+    name: "{{ prefix }}-{{ mode }}-db"
     description: DB Hosts SG
     vpc_id: "{{ vpc.vpc_id }}"
     region: "{{ region }}"
