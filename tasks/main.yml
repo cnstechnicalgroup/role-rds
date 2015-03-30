@@ -99,3 +99,4 @@
     vpc_security_groups: "{{ db_sg.group_id }}"
     instance_type: "{{ instance_type }}"
   register: rds
+  when: no_create_db is not defined
