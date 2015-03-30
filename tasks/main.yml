@@ -58,6 +58,19 @@
         to_port: 3306
         cidr_ip: "{{ web_cidr }}"
   register: db_sg
+  when: mode == 'prod'
+
+- name: Get CNS Dev DB Hosts SG details
+  local_action:
+    module: ec2_group
+    name: "{{ dev_db_sg }}"
+    description: DB Hosts SG
+    vpc_id: "{{ vpc.vpc_id }}"
+    region: "{{ region }}"
+    purge_rules: false
+    purge_rules_egress: false   
+  register: db_sg
+  when: mode == 'dev'
 
 - name: Get RDS - A subnet id for RDS Subnet Group creation
   set_fact:

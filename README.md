@@ -22,6 +22,7 @@ In the current version, you can specify the following variables:
 | name               |   ---   | Name of RDS instance.                                  |
 | owner              |   ---   | RDS instance owner for billing.                        |
 | instance           |   ---   | Object containing instance details (see example).      |
+| dev_db_sg          |   ---   | Optional Security Group name for dev RDS instances.    |
 
 Dependencies
 ------------
