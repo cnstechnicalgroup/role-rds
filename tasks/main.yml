@@ -1,19 +1,18 @@
 ---
 - name: Normalize variables
   set_fact:
-    prefix: "{{ item.value.prefix }}"
-    app: "{{ item.value.app }}"
-    mode: "{{ item.value.mode }}"
-    instance_name: "{{ item.value.prefix }}-{{ item.value.app }}-{{ item.value.mode }}-{{ item.value.version }}"
-    db_name: "{{ item.value.db_name }}"
-    username: "{{ item.value.db_username }}"
-    password: "{{ item.value.db_password }}"
-    multizone: "{{ item.value.multizone }}"
-    region: "{{ item.value.region }}"
-    db_subnet_group: "mysql-{{ item.value.prefix }}-{{ item.value.mode}}-dbsng"
-    instance_type: "{{ item.value.instance_type }}"
-    count: "{{ item.value.count }}"
-  with_dict: instance
+    prefix: "{{ instance.prefix }}"
+    app: "{{ instance.app }}"
+    mode: "{{ instance.mode }}"
+    instance_name: "{{ instance.prefix }}-{{ instance.app }}-{{ instance.mode }}-{{ instance.version }}"
+    db_name: "{{ instance.db_name }}"
+    username: "{{ instance.db_username }}"
+    password: "{{ instance.db_password }}"
+    multizone: "{{ instance.multizone }}"
+    region: "{{ instance.region }}"
+    db_subnet_group: "mysql-{{ instance.prefix }}-{{ instance.mode}}-dbsng"
+    instance_type: "{{ instance.instance_type }}"
+    count: "{{ instance.count }}"
 
 - name: Get management subnet cidr assignments
   set_fact:
@@ -57,7 +56,7 @@
         from_port: 3306
         to_port: 3306
         cidr_ip: "{{ web_cidr }}"
-  register: db_sg
+  register: db_sg_prod
   when: mode == 'prod'
 
 - name: Get CNS Dev DB Hosts SG details
@@ -69,7 +68,7 @@
     region: "{{ region }}"
     purge_rules: false
     purge_rules_egress: false   
-  register: db_sg
+  register: db_sg_dev
   when: mode == 'dev'
 
 - name: Get RDS - A subnet id for RDS Subnet Group creation
@@ -109,7 +108,7 @@
     size: 5
     region: "{{ region }}"
     subnet: "{{ db_subnet_group }}"
-    vpc_security_groups: "{{ db_sg.group_id }}"
+    vpc_security_groups: "{{ db_sg_prod.group_id if db_sg_prod.group_id is defined else db_sg_dev.group_id }}"
     instance_type: "{{ instance_type }}"
   register: rds
   when: no_create_db is not defined
