@@ -47,7 +47,7 @@ Examples
 - name: cns.rds role test
   hosts: all
   roles:
-    - cns.rds
+    - { role: cns.rds, instance: "{{ project.rds_prod }}", tags: "rds" }
 ```
 
 ```yaml

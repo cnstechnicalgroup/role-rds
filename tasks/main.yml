@@ -10,32 +10,28 @@
     password: "{{ instance.db_password }}"
     multizone: "{{ instance.multizone }}"
     region: "{{ instance.region }}"
-    db_subnet_group: "mysql-{{ instance.prefix }}-{{ instance.mode}}-dbsng"
+    db_subnet_group: "mysql_{{ instance.prefix }}_{{ instance.mode}}_dbsng"
     instance_type: "{{ instance.instance_type }}"
     count: "{{ instance.count }}"
-
-- name: Get management subnet cidr assignments
-  set_fact:
-    mgmt_cidr: "{{ item.cidr }}"
-  with_items: vpc.subnets
-  when: item.resource_tags['Name'] is defined and item.resource_tags['Name'] == "{{ mgmt_subnet_name }}"
 
 - name: Get app subnet address
   set_fact:
     app_cidr: "{{ item.cidr }}"
   with_items: vpc.subnets
-  when: item.resource_tags['Name'] is defined and item.resource_tags['Name'] == "{{ prefix }}_app_{{ mode }}"
+  when: item.resource_tags['Name'] is defined and item.resource_tags['Name'] == "{{ prefix }}_{{ mode }}_app"
 
 - name: Get web subnet address
   set_fact:
     web_cidr: "{{ item.cidr }}"
   with_items: vpc.subnets
-  when: item.resource_tags['Name'] is defined and item.resource_tags['Name'] == "{{ prefix }}_web_{{ mode }}"
+  when: item.resource_tags['Name'] is defined and item.resource_tags['Name'] == "{{ prefix }}_{{ mode }}_web"
 
 - name: Get DB Hosts SG details
   local_action:
     module: ec2_group
-    name: "{{ prefix }}-{{ mode }}-db"
+    aws_access_key: "{{ aws_access_key }}"
+    aws_secret_key: "{{ aws_secret_key }}"
+    name: "{{ prefix }}_{{ mode }}_db"
     description: DB Hosts SG
     vpc_id: "{{ vpc.vpc_id }}"
     region: "{{ region }}"
@@ -62,6 +58,8 @@
 - name: Get CNS Dev DB Hosts SG details
   local_action:
     module: ec2_group
+    aws_access_key: "{{ aws_access_key }}"
+    aws_secret_key: "{{ aws_secret_key }}"
     name: "{{ dev_db_sg }}"
     description: DB Hosts SG
     vpc_id: "{{ vpc.vpc_id }}"
@@ -75,17 +73,25 @@
   set_fact:
     rds_subnet_id_a: "{{ item.id }}"
   with_items: vpc.subnets
-  when: item.resource_tags['Name'] is defined and item.resource_tags['Name'] == "{{ prefix }}_rdsa_{{ mode }}"
+  when: item.resource_tags['Name'] is defined and item.resource_tags['Name'] == "{{ prefix }}_{{ mode }}_rdsa"
 
 - name: Get RDS - B subnet id for DB Subnet Group creation
   set_fact:
     rds_subnet_id_b: "{{ item.id }}"
   with_items: vpc.subnets
-  when: item.resource_tags['Name'] is defined and item.resource_tags['Name'] == "{{ prefix }}_rdsb_{{ mode }}"
+  when: item.resource_tags['Name'] is defined and item.resource_tags['Name'] == "{{ prefix }}_{{ mode }}_rdsb"
+
+- name: Get RDS - C subnet id for DB Subnet Group creation
+  set_fact:
+    rds_subnet_id_c: "{{ item.id }}"
+  with_items: vpc.subnets
+  when: item.resource_tags['Name'] is defined and item.resource_tags['Name'] == "{{ prefix }}_{{ mode }}_rdsc"
 
 - name: Create DB Subnet Group
   local_action:
     module: rds_subnet_group
+    aws_access_key: "{{ aws_access_key }}"
+    aws_secret_key: "{{ aws_secret_key }}"
     state: present
     region: "{{ region }}"
     name: "{{ db_subnet_group }}"
@@ -93,10 +99,13 @@
     subnets:
       - "{{ rds_subnet_id_a }}"
       - "{{ rds_subnet_id_b }}"
+      - "{{ rds_subnet_id_c }}"
 
 - name: Initialize RDS instance
   local_action:
     module: rds
+    aws_access_key: "{{ aws_access_key }}"
+    aws_secret_key: "{{ aws_secret_key }}"
     command: create
     instance_name: "db-{{ instance_name }}"
     backup_retention: 5
