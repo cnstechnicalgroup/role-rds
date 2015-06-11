@@ -10,7 +10,7 @@
     password: "{{ instance.db_password }}"
     multizone: "{{ instance.multizone }}"
     region: "{{ instance.region }}"
-    db_subnet_group: "mysql_{{ instance.prefix }}_{{ instance.mode}}_dbsng"
+    db_subnet_group: "mysql-{{ instance.prefix }}-{{ instance.mode}}-dbsng"
     instance_type: "{{ instance.instance_type }}"
     count: "{{ instance.count }}"
 
@@ -18,20 +18,20 @@
   set_fact:
     app_cidr: "{{ item.cidr }}"
   with_items: vpc.subnets
-  when: item.resource_tags['Name'] is defined and item.resource_tags['Name'] == "{{ prefix }}_{{ mode }}_app"
+  when: item.resource_tags['Name'] is defined and item.resource_tags['Name'] == "{{ prefix }}-{{ mode }}-app"
 
 - name: Get web subnet address
   set_fact:
     web_cidr: "{{ item.cidr }}"
   with_items: vpc.subnets
-  when: item.resource_tags['Name'] is defined and item.resource_tags['Name'] == "{{ prefix }}_{{ mode }}_web"
+  when: item.resource_tags['Name'] is defined and item.resource_tags['Name'] == "{{ prefix }}-{{ mode }}-web"
 
 - name: Get DB Hosts SG details
   local_action:
     module: ec2_group
     aws_access_key: "{{ aws_access_key }}"
     aws_secret_key: "{{ aws_secret_key }}"
-    name: "{{ prefix }}_{{ mode }}_db"
+    name: "{{ prefix }}-{{ mode }}-db"
     description: DB Hosts SG
     vpc_id: "{{ vpc.vpc_id }}"
     region: "{{ region }}"
@@ -73,19 +73,19 @@
   set_fact:
     rds_subnet_id_a: "{{ item.id }}"
   with_items: vpc.subnets
-  when: item.resource_tags['Name'] is defined and item.resource_tags['Name'] == "{{ prefix }}_{{ mode }}_rdsa"
+  when: item.resource_tags['Name'] is defined and item.resource_tags['Name'] == "{{ prefix }}-{{ mode }}-rdsa"
 
 - name: Get RDS - B subnet id for DB Subnet Group creation
   set_fact:
     rds_subnet_id_b: "{{ item.id }}"
   with_items: vpc.subnets
-  when: item.resource_tags['Name'] is defined and item.resource_tags['Name'] == "{{ prefix }}_{{ mode }}_rdsb"
+  when: item.resource_tags['Name'] is defined and item.resource_tags['Name'] == "{{ prefix }}-{{ mode }}-rdsb"
 
 - name: Get RDS - C subnet id for DB Subnet Group creation
   set_fact:
     rds_subnet_id_c: "{{ item.id }}"
   with_items: vpc.subnets
-  when: item.resource_tags['Name'] is defined and item.resource_tags['Name'] == "{{ prefix }}_{{ mode }}_rdsc"
+  when: item.resource_tags['Name'] is defined and item.resource_tags['Name'] == "{{ prefix }}-{{ mode }}-rdsc"
 
 - name: Create DB Subnet Group
   local_action:
